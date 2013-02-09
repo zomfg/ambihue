@@ -56,6 +56,8 @@
 
 #import "ImageDocument.h"
 
+#import "ImageLoopStrategy.h"
+#import "ColorStrategy.h"
 
 @interface ScreenSnapshotAppDelegate : NSObject <NSApplicationDelegate>
 {
@@ -69,6 +71,9 @@
     
 	BOOL	 DisplayRegistrationCallBackSuccessful;
     CGImageRef someImage;
+    
+    ColorStrategy* colorStrategy;
+    ImageLoopStrategy* imageLoopStrategy;
 }
 
 -(void) interrogateHardware;

@@ -55,13 +55,15 @@
 
 #import "ScreenSnapshotAppDelegate.h"
 
+
 #import "FullImageLoopStrategy.h"
 #import "BorderImageLoopStrategy.h"
 #import "AverageColorStrategy.h"
 #import "DominantColorStrategy.h"
 
 
-// /image loop strategies
+int i = 0;
+NSDate* started = nil;
 
 // DisplayRegisterReconfigurationCallback is a client-supplied callback function that’s invoked 
 // whenever the configuration of a local display is changed.  Applications who want to register 
@@ -122,6 +124,29 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
 {
+    //    ColorStrategy* colorStrategy = [AverageColorStrategy new];
+    colorStrategy = [DominantColorStrategy new];
+    imageLoopStrategy = [[FullImageLoopStrategy alloc] initWithColorStrategy:colorStrategy];
+    imageLoopStrategy.onComplete = ^(hsv_color_t *HSV, CGColorRef RGBColor) {
+        if (HSV) {
+            NSLog(@"Hue 0x%X | S 0x%X | V 0x%X", HSV->hue, HSV->sat, HSV->val);
+            free(HSV);
+        }
+        if (RGBColor) {
+            const CGFloat* comps = CGColorGetComponents(RGBColor);
+            NSLog(@"RGB : %.3f,%.3f,%.3f", comps[0], comps[1], comps[2]);
+            CGColorRelease(RGBColor);
+        }
+        if (++i < 200)
+            [self performSelector:@selector(shit) withObject:nil afterDelay:0.2];
+////            [self shit];
+        else {
+            NSDate* ended = [NSDate date];
+            NSLog(@"%d iterations in %f", i, [ended timeIntervalSinceDate:started]);
+        }
+    };
+//    imageLoopStrategy = [[BorderImageLoopStrategy alloc] initWithColorStrategy:colorStrategy];
+
     /* Save the shared NSDocumentController for use later. */
     documentController = [[NSDocumentController sharedDocumentController] retain];
         
@@ -176,19 +201,7 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
 */
 
 - (void) shit {
-    //    ColorStrategy* colorStrategy = [AverageColorStrategy new];
-    ColorStrategy* colorStrategy = [DominantColorStrategy new];
-    ImageLoopStrategy* imageLoopStrategy = [[FullImageLoopStrategy alloc] initWithColorStrategy:colorStrategy];
-//    ImageLoopStrategy* imageLoopStrategy = [[BorderImageLoopStrategy alloc] initWithColorStrategy:colorStrategy];
-    hsv_color_t HSV;
-    CGColorRef rgbColor = NULL;
-    [imageLoopStrategy processImage:someImage HSVColor:&HSV];
-    [imageLoopStrategy.colorStrategy calculateRGBColor:&rgbColor];
-    NSLog(@"Hue %x | S %x | V %x", HSV.hue, HSV.sat, HSV.val);
-    const CGFloat* comps = CGColorGetComponents(rgbColor);
-    NSLog(@"AVG RGB : %f,%f,%f,%f", comps[0], comps[1], comps[2], comps[3]);
-    //        NSLog(@"AVG HSV : %f(%f),%f,%f", h, h * M_PI * 114, s, v);
-    //    CreateAVGColor(image);
+    [imageLoopStrategy processImage:someImage];
 }
 
 - (IBAction)selectDisplayItem:(id)sender
@@ -200,9 +213,13 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
     /* Make a snapshot image of the current display. */
     CGImageRef image = CGDisplayCreateImage(displays[displaysIndex]);
 
-    CGColorRef rgbColor = NULL;
-    someImage = image;
+//    CGColorRef rgbColor = NULL;
+    someImage = CGImageRetain(image);
     
+    CGColorRef rgbColor = NULL;
+    started = [[NSDate date] retain];
+    [imageLoopStrategy processImage:someImage];
+
     NSError *error = nil;
     /* Create a new document. */
     ImageDocument *newDocument = [documentController openUntitledDocumentAndDisplay:YES error:&error];
@@ -210,7 +227,7 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
     {
         /* Save the CGImageRef with the document. */
 //        [newDocument setCGImage:image andAVGColor:rgbColor];
-        [NSTimer scheduledTimerWithTimeInterval:0.2 target:self selector:@selector(shit) userInfo:nil repeats:YES];
+//        [NSTimer scheduledTimerWithTimeInterval:0.2 target:self selector:@selector(shit) userInfo:nil repeats:YES];
     }
     else
     {
@@ -220,10 +237,10 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
     }
     if (rgbColor)
         CGColorRelease(rgbColor);
-//    if (image) 
-//    {
-//        CFRelease(image);
-//    }
+    if (image)
+    {
+        CFRelease(image);
+    }
 }
 
 /* Get the localized name of a display, given the display ID. */

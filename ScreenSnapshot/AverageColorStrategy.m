@@ -31,18 +31,19 @@
     ++totalPixels;
 }
 
-- (void) calculateRGBColor:(CGColorRef *)color {
+- (CGColorRef) RGBColor {
     if (totalPixels < 1)
-        return;
-    *color = CGColorCreateGenericRGB(totalRED / totalPixels / 255.0,
+        return NULL;
+    return CGColorCreateGenericRGB(totalRED / totalPixels / 255.0,
                                      totalGREEN / totalPixels / 255.0,
                                      totalBLUE / totalPixels / 255.0,
                                      1.0); // alpha
 }
 
-- (void) calculateHSVColor:(hsv_color_t*)color {
+- (hsv_color_t *) HSVColor {
     if (totalPixels < 1)
-        return;
+        return NULL;
+    hsv_color_t *color = malloc(sizeof(hsv_color_t));
     float h,s,v;
     RGB2HSV(totalRED / totalPixels / 255.0f,
             totalGREEN / totalPixels / 255.0f,
@@ -51,6 +52,7 @@
     color->hue = h * 0xffff;
     color->sat = s * 0xff;
     color->val = v * 0xff;
+    return color;
 }
 
 @end

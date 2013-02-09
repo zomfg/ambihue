@@ -13,10 +13,14 @@
     ColorStrategy *colorStrategy;
 }
 
-@property (nonatomic, retain) ColorStrategy* colorStrategy;
+@property (nonatomic, strong) ColorStrategy* colorStrategy;
+@property (nonatomic, strong) void (^onComplete)(hsv_color_t*, CGColorRef);
 
 - (id) initWithColorStrategy:(ColorStrategy*)strategy;
 
-- (void) processImage:(CGImageRef)inImage HSVColor:(hsv_color_t*)hsv_color;
+- (void) loop:(void *)data size:(CGSize)size bpp:(unsigned short)bpp;
+- (void) processImage:(CGImageRef)inImage;
+
+- (void) done;
 
 @end

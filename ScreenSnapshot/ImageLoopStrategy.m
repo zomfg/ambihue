@@ -8,9 +8,9 @@
 
 #include "stuff.h"
 #import "ImageLoopStrategy.h"
-CGContextRef CreateARGBBitmapContext (CGImageRef inImage);
+CGContextRef CreateARGBBitmapContext (CGImageRef inImage, unsigned char p2scale);
 
-CGContextRef CreateARGBBitmapContext (CGImageRef inImage)
+CGContextRef CreateARGBBitmapContext(CGImageRef inImage, unsigned char p2scale)
 {
     CGContextRef    context = NULL;
     CGColorSpaceRef colorSpace;
@@ -19,8 +19,8 @@ CGContextRef CreateARGBBitmapContext (CGImageRef inImage)
     size_t          bitmapBytesPerRow;
 
     // Get image width, height. We'll use the entire image.
-    size_t pixelsWide = CGImageGetWidth(inImage);
-    size_t pixelsHigh = CGImageGetHeight(inImage);
+    size_t pixelsWide = CGImageGetWidth(inImage) >> p2scale;
+    size_t pixelsHigh = CGImageGetHeight(inImage) >> p2scale;
 
     // Declare the number of bytes per row. Each pixel in the bitmap in this
     // example is represented by 4 bytes; 8 bits each of red, green, blue, and
@@ -69,55 +69,74 @@ CGContextRef CreateARGBBitmapContext (CGImageRef inImage)
     return context;
 }
 
-@implementation ImageLoopStrategy
-
-@synthesize colorStrategy;
-
-- (void) loop:(void *)data size:(CGSize)size bpp:(unsigned short)bpp
+void* GetImageBytes(const CGImageRef inImage, const unsigned short p2scale, CGSize *size, unsigned short *bpp)
 {
-    NSLog(@"LOOPTY LOOP");
-}
-
-- (id) initWithColorStrategy:(ColorStrategy*)strategy {
-    if ((self = [self init]))
-        colorStrategy = strategy;
-    return self;
-}
-
-- (void) processImage:(CGImageRef)inImage HSVColor:(hsv_color_t*)hsv_color {
-    // Create the bitmap context
-    CGContextRef cgctx = CreateARGBBitmapContext(inImage);
+    // size / 2^p2scale
+    CGContextRef cgctx = CreateARGBBitmapContext(inImage, p2scale);
     if (cgctx == NULL)
         // error creating context
-        return;
-
+        return NULL;
+    *bpp = 4;
+    
     // Get image width, height. We'll use the entire image.
-    size_t w = CGImageGetWidth(inImage);
-    size_t h = CGImageGetHeight(inImage);
-    CGRect rect = {{0,0},{w,h}};
-
+    size->width  = CGImageGetWidth(inImage) >> p2scale;
+    size->height = CGImageGetHeight(inImage) >> p2scale;
+    CGRect rect = {{0,0},{size->width,size->height}};
+    
     // Draw the image to the bitmap context. Once we draw, the memory
     // allocated for the context for rendering will then contain the
     // raw image data in the specified color space.
     CGContextDrawImage(cgctx, rect, inImage);
-
+    
     // Now we can get a pointer to the image data associated with the bitmap
     // context.
-    void *data = CGBitmapContextGetData (cgctx);
-
-    if (data != NULL)
-    {
-        //        NSLog(@"data ptr %ld, end ptr %ld, diff bytes %ld, total pixels %ld", data, end, end - data, t_p);
-        [self loop:data size:rect.size bpp:4];
-        [colorStrategy calculateHSVColor:hsv_color];
-    }
-
+    void *data = CGBitmapContextGetData(cgctx);
     // When finished, release the context
     CGContextRelease(cgctx);
-    // Free image data memory for the context
-    if (data)
+    return data;
+}
+
+@implementation ImageLoopStrategy
+
+@synthesize colorStrategy, onComplete;
+
+- (void) loop:(void *)data size:(CGSize)size bpp:(unsigned short)bpp
+{
+    NSLog(@"LOOPTY LOOP");
+    [self done];
+}
+
+- (void) done {
+//    NSLog(@"DONE");
+    if (onComplete == nil)
+        return;
+//    NSLog(@"IM SO GONNA COMPLETE");
+    onComplete(colorStrategy.HSVColor, colorStrategy.RGBColor);
+}
+
+- (id) initWithColorStrategy:(ColorStrategy*)strategy {
+    if ((self = [self init])) {
+        colorStrategy = strategy;
+        onComplete = nil;
+    }
+    return self;
+}
+
+- (void) processImage:(CGImageRef)inImage {
+    // Create the bitmap context
+//    static dispatch_queue_t queue = NULL;
+//    if (queue == NULL)
+//        queue = dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0);
+//    dispatch_async(queue, ^{
+    CGSize size;
+    unsigned short bpp;
+    void *data = GetImageBytes(inImage, 1, &size, &bpp);
+    if (data != NULL)
     {
+        [colorStrategy reset];
+        [self loop:data size:size bpp:bpp];
         free(data);
     }
+//    }); // dispatch block
 }
 @end

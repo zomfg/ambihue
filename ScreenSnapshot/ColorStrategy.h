@@ -11,8 +11,10 @@
 
 @interface ColorStrategy : NSObject
 
+@property (nonatomic, readonly) hsv_color_t * HSVColor;
+@property (nonatomic, readonly) CGColorRef RGBColor;
+
+- (void) reset;
 - (void) processPixel:(pixel_t*)pixel;
-- (void) calculateHSVColor:(hsv_color_t*)color;
-- (void) calculateRGBColor:(CGColorRef *)color;
 
 @end
