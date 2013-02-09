@@ -69,6 +69,7 @@ CGContextRef CreateARGBBitmapContext(CGImageRef inImage, unsigned char p2scale)
     return context;
 }
 
+void* GetImageBytes(const CGImageRef inImage, const unsigned short p2scale, CGSize *size, unsigned short *bpp);
 void* GetImageBytes(const CGImageRef inImage, const unsigned short p2scale, CGSize *size, unsigned short *bpp)
 {
     // size / 2^p2scale
@@ -76,7 +77,7 @@ void* GetImageBytes(const CGImageRef inImage, const unsigned short p2scale, CGSi
     if (cgctx == NULL)
         // error creating context
         return NULL;
-    *bpp = 4;
+    *bpp = CGImageGetBitsPerPixel(inImage) / CGImageGetBitsPerComponent(inImage);
     
     // Get image width, height. We'll use the entire image.
     size->width  = CGImageGetWidth(inImage) >> p2scale;
@@ -111,7 +112,9 @@ void* GetImageBytes(const CGImageRef inImage, const unsigned short p2scale, CGSi
     if (onComplete == nil)
         return;
 //    NSLog(@"IM SO GONNA COMPLETE");
-    onComplete(colorStrategy.HSVColor, colorStrategy.RGBColor);
+    dispatch_async(dispatch_get_main_queue(), ^{
+        onComplete(colorStrategy.HSVColor, colorStrategy.RGBColor);
+    });
 }
 
 - (id) initWithColorStrategy:(ColorStrategy*)strategy {
