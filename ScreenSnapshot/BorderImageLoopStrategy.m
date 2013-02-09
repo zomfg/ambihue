@@ -20,6 +20,8 @@
 
 - (void) loop:(void *)data size:(CGSize)size bpp:(unsigned short)bpp
 {
+    if (borderWidth << 1 > MIN(size.height, size.width))
+        borderWidth = MIN(size.height, size.width) / 2;
     unsigned short pixelSize = sizeof(unsigned char) * bpp;
     // top
     unsigned long start = 0;
@@ -50,6 +52,7 @@
         for (; start < end; start += pixelSize)
             [colorStrategy processPixel:(pixel_t*)&data[start]];
     }
+    [self done];
 }
 
 @end
