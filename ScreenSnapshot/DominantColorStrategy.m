@@ -108,9 +108,9 @@ fhsv_t hue_lookup_table[COLOR_SIZE][COLOR_SIZE][COLOR_SIZE];
 //        NSLog(@"Hue[%d] | %f = %d", i, (float)i / (float)precision * 360.0f, hues[i]);
 //    }
 //    NSLog(@"DOMINANT HUE %f", self.dominantHue);
-    color->hue = self.dominantHue * 0xffff;
-    color->sat = totalSat / totalPixels * 0xff;
-    color->val = totalVal / totalPixels * 0xff;
+    color->hue = self.dominantHue * 0xfffe;
+    color->sat = totalSat / totalPixels * 0xfe;
+    color->val = totalVal / totalPixels * 0xfe;
     return color;
 }
 
