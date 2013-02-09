@@ -61,11 +61,7 @@
 
 @interface ScreenSnapshotAppDelegate : NSObject <NSApplicationDelegate>
 {
-@private
-    IBOutlet NSMenuItem *captureMenuItem;
-    
-    NSDocumentController *documentController;
-
+@private  
 	/* displays[] Quartz display ID's */
 	CGDirectDisplayID *displays;
     
@@ -75,6 +71,8 @@
     ColorStrategy* colorStrategy;
     ImageLoopStrategy* imageLoopStrategy;
 }
+
+@property (assign) IBOutlet NSWindow *window;
 
 -(void) interrogateHardware;
 -(void) disableUI;
