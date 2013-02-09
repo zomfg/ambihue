@@ -13,12 +13,17 @@
 - (id) init {
     if ((self = [super init])) {
         precision = 20;
-        totalPixels = 0;
-        totalVal = 0.0f;
-        totalSat = 0.0f;
-        hues = calloc(precision, sizeof(unsigned int));
+        hues = malloc(precision * sizeof(*hues));
+        [self reset];
     }
     return self;
+}
+
+- (void) reset {
+    totalPixels = 0;
+    totalSat = 0.0f;
+    totalVal = 0.0f;
+    memset(hues, 0, precision * sizeof(*hues));
 }
 
 - (void) processPixel:(pixel_t *)pixel {

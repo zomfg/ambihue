@@ -12,13 +12,16 @@
 @implementation AverageColorStrategy
 
 - (id) init {
-    if ((self = [super init])) {
-        totalRED   = 0;
-        totalGREEN = 0;
-        totalBLUE  = 0;
-        totalPixels= 0;
-    }
+    if ((self = [super init]))
+        [self reset];
     return self;
+}
+
+- (void) reset {
+    totalRED   = 0;
+    totalGREEN = 0;
+    totalBLUE  = 0;
+    totalPixels= 0;
 }
 
 - (void) processPixel:(pixel_t*)pixel {
