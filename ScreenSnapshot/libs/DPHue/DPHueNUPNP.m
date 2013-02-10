@@ -13,7 +13,7 @@
 
 - (void)readFromJSONDictionary:(id)d {
     if ([d count] > 0) {
-        NSDictionary *dict = [d objectAtIndex:0];
+        NSDictionary *dict = d[0];
         _hueID = dict[@"id"];
         _hueIP = dict[@"internalipaddress"];
         _hueMACAddress = dict[@"macaddress"];

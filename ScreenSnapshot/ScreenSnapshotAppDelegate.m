@@ -235,7 +235,7 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
                         light.holdUpdates = YES;
                         continue;
                     }
-                    light.hue = [NSNumber numberWithUnsignedShort:HSV->hue];
+                    light.hue = @(HSV->hue);
                     light.saturation = @(HSV->sat);
                     light.brightness = @(HSV->val >> 1);
                     light.transitionTime = @(3);
@@ -366,12 +366,12 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
     /* Get a CFDictionary with a key for the preferred name of the display. */
     NSDictionary *displayInfo = (NSDictionary *)IODisplayCreateInfoDictionary(CGDisplayIOServicePort(displayID), kIODisplayOnlyPreferredName);
     /* Retrieve the display product name. */
-    NSDictionary *localizedNames = [displayInfo objectForKey:[NSString stringWithUTF8String:kDisplayProductName]];
+    NSDictionary *localizedNames = displayInfo[@kDisplayProductName];
     
     /* Use the first name. */
     if ([localizedNames count] > 0) 
     {
-        displayProductName = [[localizedNames objectForKey:[[localizedNames allKeys] objectAtIndex:0]] retain];
+        displayProductName = [localizedNames[[localizedNames allKeys][0]] retain];
     }
     
     [displayInfo release];

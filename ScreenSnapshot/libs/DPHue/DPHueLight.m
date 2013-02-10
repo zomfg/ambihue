@@ -86,7 +86,7 @@
 
 - (void)setOn:(BOOL)on {
     _on = on;
-    self.pendingChanges[@"on"] = [NSNumber numberWithBool:on];
+    self.pendingChanges[@"on"] = @(on);
     if (!self.holdUpdates)
         [self write];
 }
@@ -138,11 +138,11 @@
     if (!self.on) {
         // If bulb is off, it forbids changes, so send none
         // except to turn it off
-        self.pendingChanges[@"on"] = [NSNumber numberWithBool:self.on];
+        self.pendingChanges[@"on"] = @(self.on);
         [self write];
         return;
     }
-    self.pendingChanges[@"on"] = [NSNumber numberWithBool:self.on];
+    self.pendingChanges[@"on"] = @(self.on);
     self.pendingChanges[@"bri"] = self.brightness;
     // colorMode is set by the bulb itself
     // whichever color value you sent it last determines the mode
@@ -265,7 +265,7 @@
     [a encodeObject:_colorMode forKey:@"colorMode"];
     [a encodeObject:_hue forKey:@"hue"];
     [a encodeObject:_type forKey:@"bulbType"];
-    [a encodeObject:[NSNumber numberWithBool:self->_on] forKey:@"on"];
+    [a encodeObject:@(self->_on) forKey:@"on"];
     [a encodeObject:_xy forKey:@"xy"];
     [a encodeObject:_colorTemperature forKey:@"colorTemperature"];
     [a encodeObject:_saturation forKey:@"saturation"];

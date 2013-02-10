@@ -183,7 +183,7 @@ bail:
             {
                 NSArray *winControllers = [self windowControllers];
                     /* Set window title to saved filename. */
-                [[[winControllers objectAtIndex:0] window] setTitle:[savePanel nameFieldStringValue]];
+                [[winControllers[0] window] setTitle:[savePanel nameFieldStringValue]];
                 
                 [self updateChangeCount:NSChangeCleared];                
             }
