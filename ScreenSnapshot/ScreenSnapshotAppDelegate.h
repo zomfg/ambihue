@@ -66,9 +66,6 @@
     
 	BOOL	 DisplayRegistrationCallBackSuccessful;
     CGImageRef someImage;
-    
-    ColorStrategy* colorStrategy;
-    ImageLoopStrategy* imageLoopStrategy;
 }
 
 @property (unsafe_unretained) IBOutlet NSWindow *window;

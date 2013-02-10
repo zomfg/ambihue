@@ -67,12 +67,26 @@
 @interface HueStatusColorView : NSView
 
 @property (nonatomic, assign) CGColorRef color;
+@property (nonatomic, unsafe_unretained) NSStatusItem* statusItem;
+@property (nonatomic, strong) NSMenu* statusMenu;
 
 @end
 
 @implementation HueStatusColorView
 
-@synthesize color;
+@synthesize color, statusItem, statusMenu;
+
+- (void) dealloc {
+    if (color == NULL)
+        CGColorRelease(color);
+}
+
+- (void) setColor:(CGColorRef)newColor {
+    if (color == NULL)
+        CGColorRelease(color);
+    color = CGColorRetain(newColor);
+    [self setNeedsDisplay:YES];
+}
 
 - (void) drawRect:(NSRect)dirtyRect
 {
@@ -83,8 +97,11 @@
         return;
     CGContextSetFillColorWithColor(context, color);
     CGContextFillRect(context, dirtyRect);
-    CGColorRelease(color);
-    color = NULL;
+}
+
+- (void) mouseDown:(NSEvent *)theEvent
+{
+    [self.statusItem popUpStatusItemMenu:self.statusMenu];
 }
 
 @end
@@ -94,6 +111,8 @@ int i = 0;
 NSDate* started = nil;
 
 @interface ScreenSnapshotAppDelegate ()
+@property (nonatomic, strong) ImageLoopStrategy* imageLoopStrategy;
+@property (nonatomic, strong) ColorStrategy* colorStrategy;
 @property (nonatomic, strong) NSStatusItem *statusItem;
 @property (nonatomic, strong) NSMenu *statusBarMenu;
 @property (nonatomic, strong) DPHue *someHue;
@@ -151,6 +170,8 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
 @synthesize hueLights;
 @synthesize statusBarMenu;
 @synthesize statusItem;
+@synthesize colorStrategy;
+@synthesize imageLoopStrategy;
 
 #pragma mark NSApplicationDelegate
 
@@ -192,77 +213,100 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
     }];
 }
 
+- (void) changeMenuState:(NSMenuItem *)sender {
+    for (NSMenuItem *item in self.statusBarMenu.itemArray)
+        if (item.tag == sender.tag)
+            item.state = NSOffState;
+    sender.state = NSOnState;
+}
+
+- (void) select:(NSMenuItem *)sender imageLoopStrategy:(NSString *)strategyName {
+    Class ImageLoopStrategyClass = NSClassFromString(strategyName);
+    if (ImageLoopStrategyClass) {
+        ImageLoopStrategy *newStrategy = [[ImageLoopStrategyClass alloc] initWithColorStrategy:self.colorStrategy];
+        newStrategy.onComplete = self.imageLoopStrategy.onComplete;
+        self.imageLoopStrategy = newStrategy;
+        [self changeMenuState:sender];
+    }
+}
+
+- (void) selectBorderImageLoopStrategy:(NSMenuItem *)sender {
+    [self select:sender imageLoopStrategy:@"BorderImageLoopStrategy"];
+}
+
+- (void) selectFullImageLoopStrategy:(NSMenuItem *)sender {
+    [self select:sender imageLoopStrategy:@"FullImageLoopStrategy"];
+}
+
+- (void) select:(NSMenuItem *)sender colorStrategy:(NSString *)strategyName {
+    Class ColorStrategyClass = NSClassFromString(strategyName);
+    if (ColorStrategyClass) {
+        self.colorStrategy = [ColorStrategyClass new];
+        self.imageLoopStrategy.colorStrategy = self.colorStrategy;
+        [self changeMenuState:sender];
+    }
+}
+
+- (void) selectAverageColorStrategy:(NSMenuItem *)sender {
+    [self select:sender colorStrategy:@"AverageColorStrategy"];
+}
+
+- (void) selectDominantColorStrategy:(NSMenuItem *)sender {
+    [self select:sender colorStrategy:@"DominantColorStrategy"];
+}
+
 - (void)buildMenu {
     self.statusBarMenu = [[NSMenu alloc] initWithTitle:@"QuickHue"];
-    [self.statusBarMenu addItem:[[NSMenuItem alloc] initWithTitle:@"SAP" action:nil keyEquivalent:@""]];
+
+    
+    NSMenuItem* item = [[NSMenuItem alloc] initWithTitle:@"Image Loop" action:nil keyEquivalent:@""];
+    [self.statusBarMenu addItem:item];
+    item = [[NSMenuItem alloc] initWithTitle:@"Border" action:@selector(selectBorderImageLoopStrategy:) keyEquivalent:@""];
+    if ([self.imageLoopStrategy isKindOfClass:[BorderImageLoopStrategy class]])
+        item.state = NSOnState;
+    item.tag = 1;
+    item.indentationLevel = 1;
+    [self.statusBarMenu addItem:item];
+    item = [[NSMenuItem alloc] initWithTitle:@"Full" action:@selector(selectFullImageLoopStrategy:) keyEquivalent:@""];
+    if ([self.imageLoopStrategy isKindOfClass:[FullImageLoopStrategy class]])
+        item.state = NSOnState;
+    item.tag = 1;
+    item.indentationLevel = 1;
+    [self.statusBarMenu addItem:item];
+
+    [self.statusBarMenu addItem:[NSMenuItem separatorItem]];
+
+    item = [[NSMenuItem alloc] initWithTitle:@"Color" action:nil keyEquivalent:@""];
+    [self.statusBarMenu addItem:item];
+    item = [[NSMenuItem alloc] initWithTitle:@"Dominant" action:@selector(selectDominantColorStrategy:) keyEquivalent:@""];
+    if ([self.colorStrategy isKindOfClass:[DominantColorStrategy class]])
+        item.state = NSOnState;
+    item.tag = 2;
+    item.indentationLevel = 1;
+    [self.statusBarMenu addItem:item];
+    item = [[NSMenuItem alloc] initWithTitle:@"Average" action:@selector(selectAverageColorStrategy:) keyEquivalent:@""];
+    if ([self.colorStrategy isKindOfClass:[AverageColorStrategy class]])
+        item.state = NSOnState;
+    item.tag = 2;
+    item.indentationLevel = 1;
+    [self.statusBarMenu addItem:item];
 }
 
 - (void)buildStatusMenu {
-    self.statusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:NSVariableStatusItemLength];
-    NSRect frame = {{0, 0},{20, 20}};
-//    self.statusItem.image = [[NSImage alloc] initWithSize:iSize];
-//    self.statusItem.image.backgroundColor = [NSColor redColor];
+    [self buildMenu];
+
+    self.statusItem = [[NSStatusBar systemStatusBar] statusItemWithLength:20];
+    NSRect frame = {{0, 0}, {self.statusItem.length, 0}};
     HueStatusColorView* view = [[HueStatusColorView alloc] initWithFrame:frame];
     view.color = NULL;
-    self.statusItem.view = view;
-//    self.statusItem.alternateImage = [NSImage imageNamed:@"bulb-white"];
+    view.statusItem = self.statusItem;
     
-//    self.statusItem.highlightMode = YES;
-    [self buildMenu];
-    self.statusItem.menu = self.statusBarMenu;
+    view.statusMenu = self.statusBarMenu;
+    self.statusItem.view = view;
 }
 // a+b | d+f | d+b | a+f
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
-{
-//    [self performSelector:@selector(registerHue) withObject:nil afterDelay:1];
-    [NSTimer scheduledTimerWithTimeInterval:2 target:self selector:@selector(registerHue:) userInfo:nil repeats:YES];
-//    return;
-    __block hsv_color_t prevHSV = {0,0,0};
-    someImage = NULL;
-    [self buildStatusMenu];
-//    colorStrategy = [AverageColorStrategy new];
-    colorStrategy = [DominantColorStrategy new];
-//    imageLoopStrategy = [[FullImageLoopStrategy alloc] initWithColorStrategy:colorStrategy];
-    imageLoopStrategy = [[BorderImageLoopStrategy alloc] initWithColorStrategy:colorStrategy];
-    imageLoopStrategy.onComplete = ^(hsv_color_t *HSV, CGColorRef RGBColor) {
-        if (HSV) {
-            NSLog(@"Hue 0x%X | S 0x%X | V 0x%X", HSV->hue, HSV->sat, HSV->val);
-            if (HSV->hue != prevHSV.hue || HSV->sat != prevHSV.sat || HSV->val != prevHSV.val) {
-                prevHSV.hue = HSV->hue;
-                prevHSV.sat = HSV->sat;
-                prevHSV.val = HSV->val;
-                for (DPHueLight *light in hueLights) {
-                    if (light.number.intValue != 3) {
-                        light.holdUpdates = YES;
-                        continue;
-                    }
-                    light.hue = @(HSV->hue);
-                    light.saturation = @(HSV->sat);
-                    light.brightness = @(HSV->val >> 1);
-                    light.transitionTime = @(3);
-                    NSLog(@"COLOR MODE %@ %@", light.colorMode, light.number);
-                    [light writeAll];
-                }
-            }
-            free(HSV);
-        }
-        if (RGBColor) {
-            ((HueStatusColorView *)self.statusItem.view).color = CGColorRetain(RGBColor);
-            [self.statusItem.view setNeedsDisplay:YES];
-//            const CGFloat* comps = CGColorGetComponents(RGBColor);
-//            NSLog(@"RGB : %.3f,%.3f,%.3f", comps[0], comps[1], comps[2]);
-            CGColorRelease(RGBColor);
-        }
-            [self performSelector:@selector(selectDisplayItem:) withObject:nil afterDelay:0.2];
-//        if (++i < 200)
-//            [self performSelector:@selector(shit) withObject:nil afterDelay:0.2];
-////            [self shit];
-//        else {
-//            NSDate* ended = [NSDate date];
-//            NSLog(@"%d iterations in %f", i, [ended timeIntervalSinceDate:started]);
-//        }
-    };
-    
+{  
     displays = nil;
     
     /* Populate the Capture menu with a list of displays by iterating over all of the displays. */
@@ -283,8 +327,63 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
     {
 		DisplayRegistrationCallBackSuccessful = YES;
     }
-    [self selectDisplayItem:nil];
+//    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+        [self start];
+//    });
  }
+
+- (void) start {
+    [NSTimer scheduledTimerWithTimeInterval:2 target:self selector:@selector(registerHue:) userInfo:nil repeats:YES];
+    //    return;
+    __block hsv_color_t* prevHSV = NULL;
+    someImage = NULL;
+    //    colorStrategy = [AverageColorStrategy new];
+    self.colorStrategy = [DominantColorStrategy new];
+    //    imageLoopStrategy = [[FullImageLoopStrategy alloc] initWithColorStrategy:colorStrategy];
+    self.imageLoopStrategy = [[BorderImageLoopStrategy alloc] initWithColorStrategy:self.colorStrategy];
+    [self buildStatusMenu];
+    self.imageLoopStrategy.onComplete = ^(hsv_color_t *HSV, CGColorRef RGBColor) {
+        if (HSV) {
+            NSLog(@"Hue 0x%X | S 0x%X | V 0x%X", HSV->hue, HSV->sat, HSV->val);
+            if (prevHSV == NULL ||
+                HSV->hue != prevHSV->hue ||
+                HSV->sat != prevHSV->sat ||
+                HSV->val != prevHSV->val) {
+                free(prevHSV);
+                prevHSV = HSV;
+                for (DPHueLight *light in hueLights) {
+                    if (light.number.intValue != 3) {
+                        light.holdUpdates = YES;
+                        continue;
+                    }
+                    light.hue = @(HSV->hue);
+                    light.saturation = @(HSV->sat);
+                    light.brightness = @(HSV->val >> 1);
+                    light.transitionTime = @(3);
+                    NSLog(@"COLOR MODE %@ %@", light.colorMode, light.number);
+                    [light writeAll];
+                }
+            }
+            else
+                free(HSV);
+        }
+        if (RGBColor) {
+            ((HueStatusColorView *)self.statusItem.view).color = RGBColor;
+            //            const CGFloat* comps = CGColorGetComponents(RGBColor);
+            //            NSLog(@"RGB : %.3f,%.3f,%.3f", comps[0], comps[1], comps[2]);
+            CGColorRelease(RGBColor);
+        }
+        [self performSelector:@selector(selectDisplayItem:) withObject:nil afterDelay:0.2];
+        //        if (++i < 200)
+        //            [self performSelector:@selector(shit) withObject:nil afterDelay:0.2];
+        ////            [self shit];
+        //        else {
+        //            NSDate* ended = [NSDate date];
+        //            NSLog(@"%d iterations in %f", i, [ended timeIntervalSinceDate:started]);
+        //        }
+    };
+    [self selectDisplayItem:nil];
+}
 
 -(void) dealloc
 {
