@@ -162,7 +162,7 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
 }
 
 - (void) registerHue:(NSTimer *)timer {
-    someHue = [[DPHue alloc] initWithHueHost:@"192.168.0.48" username:@"29af4e3de40ba5ed8006ed93b603e68a"];
+    someHue = [[DPHue alloc] initWithHueHost:@"192.168.0.72" username:@"29af4e3de40ba5ed8006ed93b603e68a"];
     [someHue readWithCompletion:^(DPHue *hue, NSError *err) {
         if (hue.authenticated) {
             NSLog(@"%@: Successfully authenticated\n", [NSDate date]);
