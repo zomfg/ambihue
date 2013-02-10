@@ -96,8 +96,8 @@ NSDate* started = nil;
 @interface ScreenSnapshotAppDelegate ()
 @property (nonatomic, strong) NSStatusItem *statusItem;
 @property (nonatomic, strong) NSMenu *statusBarMenu;
-@property (nonatomic, assign) DPHue *someHue;
-@property (nonatomic, retain) NSArray *hueLights;
+@property (nonatomic, strong) DPHue *someHue;
+@property (nonatomic, strong) NSArray *hueLights;
 //@property (nonatomic, strong) DPQuickHuePrefsViewController *pvc;
 //@property (nonatomic, strong) DPHueDiscover *dhd;
 @end
@@ -107,7 +107,7 @@ NSDate* started = nil;
 // for notifications of display changes would use CGDisplayRegisterReconfigurationCallback
 static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, CGDisplayChangeSummaryFlags flags, void *userInfo) 
 {
-    ScreenSnapshotAppDelegate * snapshotDelegateObject = (ScreenSnapshotAppDelegate*)userInfo;
+    ScreenSnapshotAppDelegate * snapshotDelegateObject = (__bridge ScreenSnapshotAppDelegate*)userInfo;
     static BOOL DisplayConfigurationChanged = NO;
     
     // Before display reconfiguration, this callback fires to inform
@@ -205,7 +205,6 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
     HueStatusColorView* view = [[HueStatusColorView alloc] initWithFrame:frame];
     view.color = NULL;
     self.statusItem.view = view;
-    [view release];
 //    self.statusItem.alternateImage = [NSImage imageNamed:@"bulb-white"];
     
 //    self.statusItem.highlightMode = YES;
@@ -278,7 +277,7 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
     // reconfiguration function when in the program that is driving the
     // reconfiguration.
     DisplayRegistrationCallBackSuccessful = NO; // Hasn't been tried yet.
-	CGError err = CGDisplayRegisterReconfigurationCallback(DisplayRegisterReconfigurationCallback,self);
+	CGError err = CGDisplayRegisterReconfigurationCallback(DisplayRegisterReconfigurationCallback,(__bridge void *)(self));
 	if(err == kCGErrorSuccess)
     {
 		DisplayRegistrationCallBackSuccessful = YES;
@@ -292,7 +291,7 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
 	// whenever a local display is reconfigured.  We only remove the registration if it was successful in the first place.
 	if(CGDisplayRemoveReconfigurationCallback != NULL && DisplayRegistrationCallBackSuccessful == YES)
     {
-		CGDisplayRemoveReconfigurationCallback(DisplayRegisterReconfigurationCallback, self);
+		CGDisplayRemoveReconfigurationCallback(DisplayRegisterReconfigurationCallback, (__bridge void *)(self));
     }
     
     
@@ -301,7 +300,6 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
 		free(displays);
     }
     
-	[super dealloc];
 }
 
 
@@ -364,18 +362,17 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
     NSString *displayProductName = nil;
     
     /* Get a CFDictionary with a key for the preferred name of the display. */
-    NSDictionary *displayInfo = (NSDictionary *)IODisplayCreateInfoDictionary(CGDisplayIOServicePort(displayID), kIODisplayOnlyPreferredName);
+    NSDictionary *displayInfo = (NSDictionary *)CFBridgingRelease(IODisplayCreateInfoDictionary(CGDisplayIOServicePort(displayID), kIODisplayOnlyPreferredName));
     /* Retrieve the display product name. */
     NSDictionary *localizedNames = displayInfo[@kDisplayProductName];
     
     /* Use the first name. */
     if ([localizedNames count] > 0) 
     {
-        displayProductName = [localizedNames[[localizedNames allKeys][0]] retain];
+        displayProductName = localizedNames[[localizedNames allKeys][0]];
     }
     
-    [displayInfo release];
-    return [displayProductName autorelease];
+    return displayProductName;
 }
 
 /* Populate the Capture menu with a list of displays by iterating over all of the displays. */
@@ -432,12 +429,10 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
         /* Add the display menu item to the menu. */
         [captureMenu addItem:displayMenuItem];
         
-        [displayMenuItem release];
     }
     
     /* Set the display menu items as a submenu of the Capture menu. */
 //    [captureMenuItem setSubmenu:captureMenu];
-    [captureMenu release];
 }
 
 #pragma mark Menus

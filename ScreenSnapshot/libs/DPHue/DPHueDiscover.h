@@ -24,7 +24,7 @@
 
 @interface DPHueDiscover : NSObject <GCDAsyncUdpSocketDelegate>
 
-@property (nonatomic, assign) id<DPHueDiscoverDelegate> delegate;
+@property (nonatomic, unsafe_unretained) id<DPHueDiscoverDelegate> delegate;
 
 // Designated initializer
 - (id)initWithDelegate:(id<DPHueDiscoverDelegate>)delegate;

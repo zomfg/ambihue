@@ -54,7 +54,6 @@
 #import <IOKit/IOKitLib.h>
 #import <IOKit/Graphics/IOGraphicsLib.h>
 
-#import "ImageDocument.h"
 
 #import "ImageLoopStrategy.h"
 #import "ColorStrategy.h"
@@ -72,7 +71,7 @@
     ImageLoopStrategy* imageLoopStrategy;
 }
 
-@property (assign) IBOutlet NSWindow *window;
+@property (unsafe_unretained) IBOutlet NSWindow *window;
 
 -(void) interrogateHardware;
 -(void) disableUI;
