@@ -217,18 +217,20 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
 //    [self performSelector:@selector(registerHue) withObject:nil afterDelay:1];
     [NSTimer scheduledTimerWithTimeInterval:2 target:self selector:@selector(registerHue:) userInfo:nil repeats:YES];
 //    return;
-    __block unsigned short prevHue = 0;
+    __block hsv_color_t prevHSV = {0,0,0};
     someImage = NULL;
     [self buildStatusMenu];
 //    colorStrategy = [AverageColorStrategy new];
     colorStrategy = [DominantColorStrategy new];
-    imageLoopStrategy = [[FullImageLoopStrategy alloc] initWithColorStrategy:colorStrategy];
-//    imageLoopStrategy = [[BorderImageLoopStrategy alloc] initWithColorStrategy:colorStrategy];
+//    imageLoopStrategy = [[FullImageLoopStrategy alloc] initWithColorStrategy:colorStrategy];
+    imageLoopStrategy = [[BorderImageLoopStrategy alloc] initWithColorStrategy:colorStrategy];
     imageLoopStrategy.onComplete = ^(hsv_color_t *HSV, CGColorRef RGBColor) {
         if (HSV) {
             NSLog(@"Hue 0x%X | S 0x%X | V 0x%X", HSV->hue, HSV->sat, HSV->val);
-            if (HSV->hue != prevHue) {
-                prevHue = HSV->hue;
+            if (HSV->hue != prevHSV.hue || HSV->sat != prevHSV.sat || HSV->val != prevHSV.val) {
+                prevHSV.hue = HSV->hue;
+                prevHSV.sat = HSV->sat;
+                prevHSV.val = HSV->val;
                 for (DPHueLight *light in hueLights) {
                     if (light.number.intValue != 3) {
                         light.holdUpdates = YES;
@@ -241,7 +243,6 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
                     NSLog(@"COLOR MODE %@ %@", light.colorMode, light.number);
                     [light writeAll];
                 }
-//                [someHue writeAll];
             }
             free(HSV);
         }
