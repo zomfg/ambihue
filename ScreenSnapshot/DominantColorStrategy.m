@@ -20,20 +20,22 @@ fhsv_t hue_lookup_table[COLOR_SIZE][COLOR_SIZE][COLOR_SIZE];
 
 @implementation DominantColorStrategy
 
+@synthesize dominantHue;
+
 - (void) precalculateHues {
 //    if (hue_lookup_table)
 //        return;
 //    hue_lookup_table = malloc(256 * sizeof(fhsv_t**));
     fhsv_t *hsv;
-    short r,g,b;
+    unsigned short r,g,b;
     float fr,fg,fb;
-    for (r = 255; r >= 0; r--) {
+    for (r = 0; r <= 255; r++) {
 //        hue_lookup_table[r] = malloc(256 * sizeof(fhsv_t*));
         fr = (float)r / 255.0f;
-        for (g = 255; g >= 0; g--) {
+        for (g = 0; g <= 255; g++) {
 //            hue_lookup_table[r][g] = malloc(256 * sizeof(fhsv_t));
             fg = (float)g / 255.0f;
-            for (b = 255; b >= 0; b--) {
+            for (b = 0; b <= 255; b++) {
                 fb = (float)b / 255.0f;
                 hsv = &hue_lookup_table[r][g][b];
                 RGB2HSV(fr, fg, fb, &(hsv->h), &(hsv->s), &(hsv->v));
@@ -112,6 +114,11 @@ fhsv_t hue_lookup_table[COLOR_SIZE][COLOR_SIZE][COLOR_SIZE];
     color->sat = totalSat / totalPixels * 0xfe;
     color->val = totalVal / totalPixels * 0xfe;
     return color;
+}
+
+- (void) dealloc {
+    if (hues)
+        free(hues);
 }
 
 @end

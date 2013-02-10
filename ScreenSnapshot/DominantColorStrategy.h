@@ -17,6 +17,6 @@
     unsigned short precision;
 }
 
-//@property (nonatomic, readonly) float dominantHue;
+@property (nonatomic, readonly) float dominantHue;
 
 @end
