@@ -15,6 +15,7 @@ typedef struct fhsv_s {
 } fhsv_t;
 
 #define COLOR_SIZE 256
+#define COLOR_MAX  255
 
 fhsv_t hue_lookup_table[COLOR_SIZE][COLOR_SIZE][COLOR_SIZE];
 
@@ -29,14 +30,14 @@ fhsv_t hue_lookup_table[COLOR_SIZE][COLOR_SIZE][COLOR_SIZE];
     fhsv_t *hsv;
     unsigned short r,g,b;
     float fr,fg,fb;
-    for (r = 0; r <= 255; r++) {
+    for (r = 0; r <= COLOR_MAX; r++) {
 //        hue_lookup_table[r] = malloc(COLOR_SIZE * sizeof(fhsv_t*));
-        fr = (float)r / 255.0f;
-        for (g = 0; g <= 255; g++) {
+        fr = (float)r / (float)COLOR_MAX;
+        for (g = 0; g <= COLOR_MAX; g++) {
 //            hue_lookup_table[r][g] = malloc(COLOR_SIZE * sizeof(fhsv_t));
-            fg = (float)g / 255.0f;
-            for (b = 0; b <= 255; b++) {
-                fb = (float)b / 255.0f;
+            fg = (float)g / (float)COLOR_MAX;
+            for (b = 0; b <= COLOR_MAX; b++) {
+                fb = (float)b / (float)COLOR_MAX;
                 hsv = &hue_lookup_table[r][g][b];
                 RGB2HSV(fr, fg, fb, &(hsv->h), &(hsv->s), &(hsv->v));
             }
