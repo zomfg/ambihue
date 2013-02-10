@@ -13,10 +13,11 @@
     unsigned long totalPixels;
     float totalSat; // hSv
     float totalVal; // hsV
-    unsigned int* hues;
+    unsigned long* hues;
     unsigned short precision;
 }
 
 @property (nonatomic, readonly) float dominantHue;
+@property (nonatomic, assign) unsigned short precision;
 
 @end

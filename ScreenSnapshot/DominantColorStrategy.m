@@ -20,20 +20,20 @@ fhsv_t hue_lookup_table[COLOR_SIZE][COLOR_SIZE][COLOR_SIZE];
 
 @implementation DominantColorStrategy
 
-@synthesize dominantHue;
+@synthesize dominantHue, precision;
 
 - (void) precalculateHues {
 //    if (hue_lookup_table)
 //        return;
-//    hue_lookup_table = malloc(256 * sizeof(fhsv_t**));
+//    hue_lookup_table = malloc(COLOR_SIZE * sizeof(fhsv_t**));
     fhsv_t *hsv;
     unsigned short r,g,b;
     float fr,fg,fb;
     for (r = 0; r <= 255; r++) {
-//        hue_lookup_table[r] = malloc(256 * sizeof(fhsv_t*));
+//        hue_lookup_table[r] = malloc(COLOR_SIZE * sizeof(fhsv_t*));
         fr = (float)r / 255.0f;
         for (g = 0; g <= 255; g++) {
-//            hue_lookup_table[r][g] = malloc(256 * sizeof(fhsv_t));
+//            hue_lookup_table[r][g] = malloc(COLOR_SIZE * sizeof(fhsv_t));
             fg = (float)g / 255.0f;
             for (b = 0; b <= 255; b++) {
                 fb = (float)b / 255.0f;
@@ -52,6 +52,14 @@ fhsv_t hue_lookup_table[COLOR_SIZE][COLOR_SIZE][COLOR_SIZE];
         [self precalculateHues];
     }
     return self;
+}
+
+- (void) setPrecision:(unsigned short)newPrecision {
+    if (newPrecision == precision || newPrecision == 0)
+        return;
+    precision = newPrecision;
+    hues = realloc(hues, precision * sizeof(*hues));
+    memset(hues, 0, precision * sizeof(*hues));
 }
 
 - (void) reset {
@@ -81,14 +89,14 @@ fhsv_t hue_lookup_table[COLOR_SIZE][COLOR_SIZE][COLOR_SIZE];
 }
 
 - (float) dominantHue {
-    unsigned short max = 0;
-    unsigned int count = 0;
+    unsigned short dominantIndex = 0;
+    unsigned long  dominantCount = 0;
     for (unsigned short i = 0; i < precision; ++i)
-        if (count < hues[i]) {
-            max = i;
-            count = hues[i];
+        if (dominantCount < hues[i]) {
+            dominantIndex = i;
+            dominantCount = hues[i];
         }
-    return ((float)max / (float)precision);
+    return ((float)dominantIndex / (float)precision);
 }
 
 - (CGColorRef) RGBColor {
