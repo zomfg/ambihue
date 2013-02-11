@@ -63,9 +63,9 @@
 @private  
 	/* displays[] Quartz display ID's */
 	CGDirectDisplayID *displays;
-    
+    unsigned short currentDisplayIndex;
+
 	BOOL	 DisplayRegistrationCallBackSuccessful;
-    CGImageRef someImage;
 }
 
 @property (unsafe_unretained) IBOutlet NSWindow *window;

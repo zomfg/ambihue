@@ -306,10 +306,16 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
 }
 // a+b | d+f | d+b | a+f
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification
-{  
+{
+    currentDisplayIndex = 0;
     displays = nil;
     
     /* Populate the Capture menu with a list of displays by iterating over all of the displays. */
+    //    colorStrategy = [AverageColorStrategy new];
+    self.colorStrategy = [DominantColorStrategy new];
+    //    imageLoopStrategy = [[FullImageLoopStrategy alloc] initWithColorStrategy:colorStrategy];
+    self.imageLoopStrategy = [[BorderImageLoopStrategy alloc] initWithColorStrategy:self.colorStrategy];
+    [self buildStatusMenu];
     [self interrogateHardware];
     
     // Applications who want to register for notifications of display changes would use 
@@ -328,7 +334,7 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
 		DisplayRegistrationCallBackSuccessful = YES;
     }
 //    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
-        [self start];
+    [self start];
 //    });
  }
 
@@ -336,12 +342,7 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
     [NSTimer scheduledTimerWithTimeInterval:2 target:self selector:@selector(registerHue:) userInfo:nil repeats:YES];
     //    return;
     __block hsv_color_t* prevHSV = NULL;
-    someImage = NULL;
-    //    colorStrategy = [AverageColorStrategy new];
-    self.colorStrategy = [DominantColorStrategy new];
-    //    imageLoopStrategy = [[FullImageLoopStrategy alloc] initWithColorStrategy:colorStrategy];
-    self.imageLoopStrategy = [[BorderImageLoopStrategy alloc] initWithColorStrategy:self.colorStrategy];
-    [self buildStatusMenu];
+
     self.imageLoopStrategy.onComplete = ^(hsv_color_t *HSV, CGColorRef RGBColor) {
         if (HSV) {
             NSLog(@"Hue 0x%X | S 0x%X | V 0x%X", HSV->hue, HSV->sat, HSV->val);
@@ -373,7 +374,7 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
             //            NSLog(@"RGB : %.3f,%.3f,%.3f", comps[0], comps[1], comps[2]);
             CGColorRelease(RGBColor);
         }
-        [self performSelector:@selector(selectDisplayItem:) withObject:nil afterDelay:0.2];
+        [self performSelector:@selector(captureCurrentDisplay) withObject:nil afterDelay:0.2];
         //        if (++i < 200)
         //            [self performSelector:@selector(shit) withObject:nil afterDelay:0.2];
         ////            [self shit];
@@ -382,7 +383,7 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
         //            NSLog(@"%d iterations in %f", i, [ended timeIntervalSinceDate:started]);
         //        }
     };
-    [self selectDisplayItem:nil];
+    [self captureCurrentDisplay];
 }
 
 -(void) dealloc
@@ -411,49 +412,20 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
  with the image.
 */
 
-- (void) shit {
-    [imageLoopStrategy processImage:someImage];
-}
+- (void) captureCurrentDisplay {
+    CGImageRef image = CGDisplayCreateImage(displays[currentDisplayIndex]);
 
-- (IBAction)selectDisplayItem:(id)sender
-{
-//    NSMenuItem *menuItem = (NSMenuItem *)sender;
-
-    /* Get the index for the chosen display from the CGDirectDisplayID array. */
-    NSInteger displaysIndex = 0;//[menuItem tag];
-    /* Make a snapshot image of the current display. */
-    CGImageRef image = CGDisplayCreateImage(displays[displaysIndex]);
-
-//    CGColorRef rgbColor = NULL;
-    if (someImage)
-        CGImageRelease(someImage);
-    someImage = CGImageRetain(image);
-    
-    CGColorRef rgbColor = NULL;
-//    started = [[NSDate date] retain];
-    [imageLoopStrategy processImage:someImage];
-
-    NSError *error = nil;
-    /* Create a new document. */
-//    ImageDocument *newDocument = [documentController openUntitledDocumentAndDisplay:YES error:&error];
-//    if (newDocument)
-//    {
-        /* Save the CGImageRef with the document. */
-//        [newDocument setCGImage:image andAVGColor:rgbColor];
-//        [NSTimer scheduledTimerWithTimeInterval:0.2 target:self selector:@selector(shit) userInfo:nil repeats:YES];
-//    }
-//    else
-//    {
-//        /* Display the error. */
-//        NSAlert *alert = [NSAlert alertWithError:error];
-//        [alert runModal];
-//    }
-    if (rgbColor)
-        CGColorRelease(rgbColor);
-    if (image)
-    {
+    if (image) {
+    //    started = [[NSDate date] retain];
+        [imageLoopStrategy processImage:image];
         CFRelease(image);
     }
+}
+
+- (IBAction)selectDisplayItem:(NSMenuItem *)menuItem
+{
+    /* Get the index for the chosen display from the CGDirectDisplayID array. */
+    currentDisplayIndex = menuItem ? menuItem.tag : 0;
 }
 
 /* Get the localized name of a display, given the display ID. */
@@ -512,8 +484,11 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
     }
 
     /* Create the 'Capture Screen' menu. */
-    NSMenu *captureMenu = [[NSMenu alloc] initWithTitle:@"Capture Screen"];
+//    NSMenu *captureMenu = [[NSMenu alloc] initWithTitle:@"Capture Screen"];
+    [self.statusBarMenu addItem:[NSMenuItem separatorItem]];
 
+    NSMenuItem* item = [[NSMenuItem alloc] initWithTitle:@"Displays" action:nil keyEquivalent:@""];
+    [self.statusBarMenu addItem:item];
     int i;
     /* Now we iterate through them. */
     for(i = 0; i < dspCount; i++)
@@ -522,17 +497,16 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
         NSString* name = [self displayNameFromDisplayID:displays[i]];
 
         /* Create new menu item for the display. */
-        NSMenuItem *displayMenuItem = [[NSMenuItem alloc] initWithTitle:name action:@selector(selectDisplayItem:) keyEquivalent:@""];
+        item = [[NSMenuItem alloc] initWithTitle:name action:@selector(selectDisplayItem:) keyEquivalent:@""];
         /* Save display index with the menu item. That way, when it is selected we can easily retrieve
            the display ID from the displays array. */
-        [displayMenuItem setTag:i];
+        item.tag = i;
+        item.indentationLevel = 1;
         /* Add the display menu item to the menu. */
-        [captureMenu addItem:displayMenuItem];
-        
+        [self.statusBarMenu addItem:item];
     }
-    
     /* Set the display menu items as a submenu of the Capture menu. */
-//    [captureMenuItem setSubmenu:captureMenu];
+//    [self.statusBarMenu setSubmenu:captureMenu];
 }
 
 #pragma mark Menus
