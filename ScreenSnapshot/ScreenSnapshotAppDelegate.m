@@ -426,6 +426,13 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
 {
     /* Get the index for the chosen display from the CGDirectDisplayID array. */
     currentDisplayIndex = menuItem ? menuItem.tag : 0;
+    if (menuItem && menuItem.parentItem)
+        for (NSMenuItem* item in menuItem.parentItem.submenu.itemArray) {
+            if (item.tag == currentDisplayIndex)
+                item.state = NSOnState;
+            else
+                item.state = NSOffState;
+        }
 }
 
 /* Get the localized name of a display, given the display ID. */
@@ -484,29 +491,36 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
     }
 
     /* Create the 'Capture Screen' menu. */
-//    NSMenu *captureMenu = [[NSMenu alloc] initWithTitle:@"Capture Screen"];
-    [self.statusBarMenu addItem:[NSMenuItem separatorItem]];
+    NSMenuItem* displaysItem = [NSMenuItem new];
+    displaysItem.title = @"Displays";
 
-    NSMenuItem* item = [[NSMenuItem alloc] initWithTitle:@"Displays" action:nil keyEquivalent:@""];
-    [self.statusBarMenu addItem:item];
-    int i;
+    NSMenu *captureMenu = [NSMenu new];
+    displaysItem.tag = 3;
+//    [self.statusBarMenu addItem:[NSMenuItem separatorItem]];
+
+//    NSMenuItem* item;// = [[NSMenuItem alloc] initWithTitle:@"Displays" action:nil keyEquivalent:@""];
+//    [self.statusBarMenu addItem:item];
+
     /* Now we iterate through them. */
-    for(i = 0; i < dspCount; i++)
+    for(NSUInteger i = 0; i < dspCount; i++)
     {
         /* Get display name for the selected display. */
         NSString* name = [self displayNameFromDisplayID:displays[i]];
 
         /* Create new menu item for the display. */
-        item = [[NSMenuItem alloc] initWithTitle:name action:@selector(selectDisplayItem:) keyEquivalent:@""];
+        NSMenuItem *item = [[NSMenuItem alloc] initWithTitle:name action:@selector(selectDisplayItem:) keyEquivalent:@""];
         /* Save display index with the menu item. That way, when it is selected we can easily retrieve
            the display ID from the displays array. */
         item.tag = i;
-        item.indentationLevel = 1;
+        if (currentDisplayIndex == i)
+            item.state = NSOnState;
+//        item.indentationLevel = 1;
         /* Add the display menu item to the menu. */
-        [self.statusBarMenu addItem:item];
+        [captureMenu addItem:item];
     }
     /* Set the display menu items as a submenu of the Capture menu. */
-//    [self.statusBarMenu setSubmenu:captureMenu];
+    [displaysItem setSubmenu:captureMenu];
+    [self.statusBarMenu addItem:displaysItem];
 }
 
 #pragma mark Menus
