@@ -12,7 +12,7 @@
 #import <QuartzCore/QuartzCore.h>
 
 typedef struct pixel_s {
-//    unsigned char a;
+    unsigned char a;
     unsigned char r;
     unsigned char g;
     unsigned char b;

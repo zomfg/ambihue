@@ -56,7 +56,7 @@ CGContextRef CreateARGBBitmapContext(CGImageRef inImage, unsigned char p2scale)
                                      8,      // bits per component
                                      bitmapBytesPerRow,
                                      colorSpace,
-                                     kCGImageAlphaNoneSkipLast);
+                                     CGImageGetAlphaInfo(inImage));
     if (context == NULL)
     {
         free (bitmapData);
