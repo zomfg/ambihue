@@ -191,19 +191,9 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
             NSLog(@"Found Hue at %@, named '%@'!", hue.host, hue.name);
             hueLights = hue.lights;
             [timer invalidate];
-            return ;
-            for (int i = 0; ; i = (i + 4) % 360) {
-                for (DPHueLight *light in hueLights) {
-                    if (light.number.intValue != 3)
-                        continue;
-                    light.hue = [NSNumber numberWithUnsignedShort:i * 182];
-                    light.saturation = @(201);//@(HSV->sat);
-                    light.brightness = @(228);//@(HSV->val);
-                    //                    light.transitionTime = @(100);
-                    NSLog(@"COLOR MODE %@ %d", light.colorMode, i);
-                }
-                [someHue writeAll];
-                sleep(1);
+            for (DPHueLight *light in hueLights) {
+                light.on = YES;
+                [light writeAll];
             }
         } else {
             NSLog(@"%@: Authentication failed, will try to create username\n", [NSDate date]);
