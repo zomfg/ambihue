@@ -350,7 +350,7 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
                     light.hue = @(HSV->hue);
                     light.saturation = @(HSV->sat);
                     light.brightness = @(HSV->val >> 1);
-                    light.transitionTime = @(3);
+                    light.transitionTime = @(2);
                     NSLog(@"COLOR MODE %@ %@", light.colorMode, light.number);
                     [light writeAll];
                 }
@@ -364,7 +364,7 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
             //            NSLog(@"RGB : %.3f,%.3f,%.3f", comps[0], comps[1], comps[2]);
             CGColorRelease(RGBColor);
         }
-        [self performSelector:@selector(captureCurrentDisplay) withObject:nil afterDelay:0.2];
+        [self performSelector:@selector(captureCurrentDisplay) withObject:nil afterDelay:0.1];
         //        if (++i < 200)
         //            [self performSelector:@selector(shit) withObject:nil afterDelay:0.2];
         ////            [self shit];
