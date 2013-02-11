@@ -108,7 +108,8 @@
 
 
 int i = 0;
-NSDate* started = nil;
+__strong NSDate* started = nil;
+//dispatch_queue_t queue = NULL;
 
 @interface ScreenSnapshotAppDelegate ()
 @property (nonatomic, strong) ImageLoopStrategy* imageLoopStrategy;
@@ -333,19 +334,20 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
     {
 		DisplayRegistrationCallBackSuccessful = YES;
     }
-//    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
-    [self start];
-//    });
+//    queue = dispatch_queue_create("com.hue.imagequeue", NULL);
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), ^{
+        [self start];
+    });
  }
 
 - (void) start {
-    [NSTimer scheduledTimerWithTimeInterval:2 target:self selector:@selector(registerHue:) userInfo:nil repeats:YES];
+//    [NSTimer scheduledTimerWithTimeInterval:2 target:self selector:@selector(registerHue:) userInfo:nil repeats:YES];
     //    return;
     __block hsv_color_t* prevHSV = NULL;
 
     self.imageLoopStrategy.onComplete = ^(hsv_color_t *HSV, CGColorRef RGBColor) {
         if (HSV) {
-            NSLog(@"Hue 0x%X | S 0x%X | V 0x%X", HSV->hue, HSV->sat, HSV->val);
+//            NSLog(@"Hue 0x%X | S 0x%X | V 0x%X", HSV->hue, HSV->sat, HSV->val);
             if (prevHSV == NULL ||
                 HSV->hue != prevHSV->hue ||
                 HSV->sat != prevHSV->sat ||
@@ -369,20 +371,35 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
                 free(HSV);
         }
         if (RGBColor) {
-            ((HueStatusColorView *)self.statusItem.view).color = RGBColor;
+            __block CGColorRef RGBColorRef = CGColorCreateCopy(RGBColor);
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    ((HueStatusColorView *)self.statusItem.view).color = RGBColorRef;
+                    CGColorRelease(RGBColorRef);
+            });
+            CGColorRelease(RGBColor);
             //            const CGFloat* comps = CGColorGetComponents(RGBColor);
             //            NSLog(@"RGB : %.3f,%.3f,%.3f", comps[0], comps[1], comps[2]);
-            CGColorRelease(RGBColor);
+//            CGColorRelease(RGBColor);
         }
-        [self performSelector:@selector(captureCurrentDisplay) withObject:nil afterDelay:0.2];
-        //        if (++i < 200)
-        //            [self performSelector:@selector(shit) withObject:nil afterDelay:0.2];
-        ////            [self shit];
-        //        else {
-        //            NSDate* ended = [NSDate date];
-        //            NSLog(@"%d iterations in %f", i, [ended timeIntervalSinceDate:started]);
-        //        }
+//        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
+//            [self captureCurrentDisplay];
+//        dispatch_async(queue, ^{
+//            [self performSelector:@selector(captureCurrentDisplay) withObject:nil afterDelay:0.2];
+//        });
+        double delayInSeconds = 0.2;
+        dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));
+        dispatch_after(popTime, dispatch_get_current_queue(), ^(void){
+            [self captureCurrentDisplay];
+        });
+//        if (++i < 500)
+//            [self captureCurrentDisplay];
+//            [self performSelector:@selector(shit) withObject:nil afterDelay:0.2];
+//        else {
+//            NSDate* ended = [NSDate date];
+//            NSLog(@"%d iterations in %f", i, [ended timeIntervalSinceDate:started]);
+//        }
     };
+    started = [NSDate date];
     [self captureCurrentDisplay];
 }
 

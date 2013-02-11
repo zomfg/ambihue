@@ -9,7 +9,7 @@
 #import "DominantColorStrategy.h"
 
 typedef struct fhsv_s {
-    float h;
+    unsigned short h;
     float s;
     float v;
 } fhsv_t;
@@ -29,7 +29,7 @@ fhsv_t hue_lookup_table[COLOR_SIZE][COLOR_SIZE][COLOR_SIZE];
 //    hue_lookup_table = malloc(COLOR_SIZE * sizeof(fhsv_t**));
     fhsv_t *hsv;
     unsigned short r,g,b;
-    float fr,fg,fb;
+    float fr,fg,fb,fh;
     for (r = 0; r <= COLOR_MAX; r++) {
 //        hue_lookup_table[r] = malloc(COLOR_SIZE * sizeof(fhsv_t*));
         fr = (float)r / (float)COLOR_MAX;
@@ -39,7 +39,8 @@ fhsv_t hue_lookup_table[COLOR_SIZE][COLOR_SIZE][COLOR_SIZE];
             for (b = 0; b <= COLOR_MAX; b++) {
                 fb = (float)b / (float)COLOR_MAX;
                 hsv = &hue_lookup_table[r][g][b];
-                RGB2HSV(fr, fg, fb, &(hsv->h), &(hsv->s), &(hsv->v));
+                RGB2HSV(fr, fg, fb, &fh, &(hsv->s), &(hsv->v));
+                hsv->h = fh * (precision - 1);
             }
         }
     }
@@ -81,11 +82,15 @@ fhsv_t hue_lookup_table[COLOR_SIZE][COLOR_SIZE][COLOR_SIZE];
 //    totalVal += v;
 
     fhsv_t *hsv = &hue_lookup_table[pixel->r][pixel->g][pixel->b];
-    unsigned short hueIndex = hsv->h * (precision - 1);
-    totalSat += hsv->s;
+
+//    unsigned short hueIndex = hsv->h;// * (precision - 1);
+
+//    hues[hsv->h] = hues[hsv->h] + 1;
+
     totalVal += hsv->v;
 
-    ++hues[hueIndex];
+    totalSat += hsv->s;
+
     ++totalPixels;
 }
 

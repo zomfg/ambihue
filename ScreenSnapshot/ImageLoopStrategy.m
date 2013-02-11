@@ -97,6 +97,8 @@ void* GetImageBytes(const CGImageRef inImage, const unsigned short p2scale, CGSi
     return data;
 }
 
+dispatch_queue_t mainqueue = NULL;
+
 @implementation ImageLoopStrategy
 
 @synthesize colorStrategy, onComplete;
@@ -112,9 +114,11 @@ void* GetImageBytes(const CGImageRef inImage, const unsigned short p2scale, CGSi
     if (onComplete == nil)
         return;
 //    NSLog(@"IM SO GONNA COMPLETE");
-    dispatch_async(dispatch_get_main_queue(), ^{
+//    if (mainqueue == NULL)
+//        mainqueue = dispatch_get_main_queue();
+//    dispatch_async(mainqueue, ^{
         onComplete(colorStrategy.HSVColor, colorStrategy.RGBColor);
-    });
+//    });
 }
 
 - (id) initWithColorStrategy:(ColorStrategy*)strategy {
