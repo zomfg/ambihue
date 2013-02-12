@@ -77,12 +77,12 @@
 @synthesize color, statusItem, statusMenu;
 
 - (void) dealloc {
-    if (color == NULL)
+    if (color != NULL)
         CGColorRelease(color);
 }
 
 - (void) setColor:(CGColorRef)newColor {
-    if (color == NULL)
+    if (color != NULL)
         CGColorRelease(color);
     color = CGColorRetain(newColor);
     [self setNeedsDisplay:YES];
@@ -97,6 +97,8 @@
         return;
     CGContextSetFillColorWithColor(context, color);
     CGContextFillRect(context, dirtyRect);
+    CGColorRelease(color);
+    color = NULL;
 }
 
 - (void) mouseDown:(NSEvent *)theEvent
@@ -163,7 +165,7 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
     }
 }
 
-
+hsv_color_t* prevHSV = NULL;
 @implementation ScreenSnapshotAppDelegate
 
 @synthesize someHue;
@@ -214,7 +216,9 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
     Class ImageLoopStrategyClass = NSClassFromString(strategyName);
     if (ImageLoopStrategyClass) {
         ImageLoopStrategy *newStrategy = [[ImageLoopStrategyClass alloc] initWithColorStrategy:self.colorStrategy];
-        newStrategy.onComplete = self.imageLoopStrategy.onComplete;
+//        newStrategy.onComplete = self.imageLoopStrategy.onComplete;
+        self.imageLoopStrategy.delegate = nil;
+        newStrategy.delegate = self;
         self.imageLoopStrategy = newStrategy;
         [self changeMenuState:sender];
     }
@@ -305,6 +309,7 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
     self.colorStrategy = [DominantColorStrategy new];
     //    imageLoopStrategy = [[FullImageLoopStrategy alloc] initWithColorStrategy:colorStrategy];
     self.imageLoopStrategy = [[BorderImageLoopStrategy alloc] initWithColorStrategy:self.colorStrategy];
+    self.imageLoopStrategy.delegate = self;
     [self buildStatusMenu];
     [self interrogateHardware];
     
@@ -326,45 +331,73 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
 //    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
     [self start];
 //    });
- }
+}
+
+- (void) updateHues:(hsv_color_t *)HSV {
+    for (DPHueLight *light in hueLights) {
+        if (light.number.intValue != 3) {
+            light.holdUpdates = YES;
+            continue;
+        }
+        light.hue = @(HSV->hue);
+        light.saturation = @(HSV->sat);
+        light.brightness = @(HSV->val >> 1);
+        light.transitionTime = @(3);
+        NSLog(@"COLOR MODE %@ %@", light.colorMode, light.number);
+        [light writeAll];
+    }
+}
+
+- (void) updateStatusColor:(CGColorRef)newColor {
+    ((HueStatusColorView *)self.statusItem.view).color = newColor;
+}
+
+- (void) loopCompleteWithColors:(hsv_color_t *)HSV RGB:(CGColorRef)RGBColor {
+    if (HSV) {
+        NSLog(@"Hue 0x%X | S 0x%X | V 0x%X", HSV->hue, HSV->sat, HSV->val);
+        if (prevHSV == NULL ||
+            HSV->hue != prevHSV->hue ||
+            HSV->sat != prevHSV->sat ||
+            HSV->val != prevHSV->val) {
+            free(prevHSV);
+            prevHSV = HSV;
+            [self updateHues:HSV];
+        }
+        else
+            free(HSV);
+    }
+    if (RGBColor) {
+        [self updateStatusColor:RGBColor];
+        CGColorRelease(RGBColor);
+    }
+    [self performSelector:@selector(captureCurrentDisplay) withObject:nil afterDelay:0.1];
+}
 
 - (void) start {
     [NSTimer scheduledTimerWithTimeInterval:2 target:self selector:@selector(registerHue:) userInfo:nil repeats:YES];
-    //    return;
-    __block hsv_color_t* prevHSV = NULL;
-
-    self.imageLoopStrategy.onComplete = ^(hsv_color_t *HSV, CGColorRef RGBColor) {
-        if (HSV) {
-            NSLog(@"Hue 0x%X | S 0x%X | V 0x%X", HSV->hue, HSV->sat, HSV->val);
-            if (prevHSV == NULL ||
-                HSV->hue != prevHSV->hue ||
-                HSV->sat != prevHSV->sat ||
-                HSV->val != prevHSV->val) {
-                free(prevHSV);
-                prevHSV = HSV;
-                for (DPHueLight *light in hueLights) {
-                    if (light.number.intValue != 3) {
-                        light.holdUpdates = YES;
-                        continue;
-                    }
-                    light.hue = @(HSV->hue);
-                    light.saturation = @(HSV->sat);
-                    light.brightness = @(HSV->val >> 1);
-                    light.transitionTime = @(2);
-                    NSLog(@"COLOR MODE %@ %@", light.colorMode, light.number);
-                    [light writeAll];
-                }
-            }
-            else
-                free(HSV);
-        }
-        if (RGBColor) {
-            ((HueStatusColorView *)self.statusItem.view).color = RGBColor;
-            //            const CGFloat* comps = CGColorGetComponents(RGBColor);
-            //            NSLog(@"RGB : %.3f,%.3f,%.3f", comps[0], comps[1], comps[2]);
-            CGColorRelease(RGBColor);
-        }
-        [self performSelector:@selector(captureCurrentDisplay) withObject:nil afterDelay:0.1];
+//    return;
+//    __block hsv_color_t* prevHSV = NULL;
+//    id apDelegate = self;
+//    self.imageLoopStrategy.onComplete = ^() {
+//        if (HSV) {
+//            NSLog(@"Hue 0x%X | S 0x%X | V 0x%X", HSV->hue, HSV->sat, HSV->val);
+//            if (prevHSV == NULL ||
+//                HSV->hue != prevHSV->hue ||
+//                HSV->sat != prevHSV->sat ||
+//                HSV->val != prevHSV->val) {
+//                free(prevHSV);
+//                prevHSV = HSV;
+//                [apDelegate updateHues:HSV];
+//            }
+//            else
+//                free(HSV);
+//        }
+//        if (RGBColor) {
+//            [apDelegate updateStatusColor:RGBColor];
+//            CGColorRelease(RGBColor);
+//        }
+//        [apDelegate captureCurrentDisplay];
+//        [apDelegate performSelector:@selector(captureCurrentDisplay) withObject:nil afterDelay:0.1];
         //        if (++i < 200)
         //            [self performSelector:@selector(shit) withObject:nil afterDelay:0.2];
         ////            [self shit];
@@ -372,7 +405,9 @@ static void DisplayRegisterReconfigurationCallback (CGDirectDisplayID display, C
         //            NSDate* ended = [NSDate date];
         //            NSLog(@"%d iterations in %f", i, [ended timeIntervalSinceDate:started]);
         //        }
-    };
+//    };
+//    [NSTimer scheduledTimerWithTimeInterval:0.1 target:self selector:@selector(captureCurrentDisplay) userInfo:nil repeats:YES];
+//    while (1)
     [self captureCurrentDisplay];
 }
 

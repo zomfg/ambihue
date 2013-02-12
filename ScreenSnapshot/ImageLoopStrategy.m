@@ -99,7 +99,7 @@ void* GetImageBytes(const CGImageRef inImage, const unsigned short p2scale, CGSi
 
 @implementation ImageLoopStrategy
 
-@synthesize colorStrategy, onComplete;
+@synthesize colorStrategy, onComplete, delegate;
 
 - (void) loop:(void *)data size:(CGSize)size bpp:(unsigned short)bpp
 {
@@ -108,13 +108,15 @@ void* GetImageBytes(const CGImageRef inImage, const unsigned short p2scale, CGSi
 }
 
 - (void) done {
+    if (delegate)
+        [delegate loopCompleteWithColors:colorStrategy.HSVColor RGB:colorStrategy.RGBColor];
 //    NSLog(@"DONE");
-    if (onComplete == nil)
-        return;
+//    if (onComplete == nil)
+//        return;
 //    NSLog(@"IM SO GONNA COMPLETE");
-    dispatch_async(dispatch_get_main_queue(), ^{
-        onComplete(colorStrategy.HSVColor, colorStrategy.RGBColor);
-    });
+//    dispatch_async(dispatch_get_main_queue(), ^{
+//        onComplete(colorStrategy.HSVColor, colorStrategy.RGBColor);
+//    });
 }
 
 - (id) initWithColorStrategy:(ColorStrategy*)strategy {

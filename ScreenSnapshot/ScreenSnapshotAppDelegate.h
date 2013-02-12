@@ -58,7 +58,7 @@
 #import "ImageLoopStrategy.h"
 #import "ColorStrategy.h"
 
-@interface ScreenSnapshotAppDelegate : NSObject <NSApplicationDelegate>
+@interface ScreenSnapshotAppDelegate : NSObject <NSApplicationDelegate, ImageLoopDelegate>
 {
 @private  
 	/* displays[] Quartz display ID's */
