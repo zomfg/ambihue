@@ -354,7 +354,7 @@ hsv_color_t* prevHSV = NULL;
 
 - (void) loopCompleteWithColors:(hsv_color_t *)HSV RGB:(CGColorRef)RGBColor {
     if (HSV) {
-        NSLog(@"Hue 0x%X | S 0x%X | V 0x%X", HSV->hue, HSV->sat, HSV->val);
+//        NSLog(@"Hue 0x%X | S 0x%X | V 0x%X", HSV->hue, HSV->sat, HSV->val);
         if (prevHSV == NULL ||
             HSV->hue != prevHSV->hue ||
             HSV->sat != prevHSV->sat ||
@@ -370,7 +370,8 @@ hsv_color_t* prevHSV = NULL;
         [self updateStatusColor:RGBColor];
         CGColorRelease(RGBColor);
     }
-    [self performSelector:@selector(captureCurrentDisplay) withObject:nil afterDelay:0.1];
+//    [self captureCurrentDisplay];
+    [self performSelector:@selector(captureCurrentDisplay) withObject:nil afterDelay:0.2];
 }
 
 - (void) start {
@@ -443,7 +444,7 @@ hsv_color_t* prevHSV = NULL;
     if (image) {
     //    started = [[NSDate date] retain];
         [imageLoopStrategy processImage:image];
-        CFRelease(image);
+        CGImageRelease(image);
     }
 }
 
