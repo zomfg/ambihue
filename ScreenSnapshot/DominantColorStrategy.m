@@ -48,7 +48,7 @@ fhsv_t hue_lookup_table[COLOR_SIZE][COLOR_SIZE][COLOR_SIZE];
 - (id) init {
     if ((self = [super init])) {
         precision = 40;
-        hues = malloc(precision * sizeof(*hues));
+        hues = malloc((precision + 1) * sizeof(*hues));
         [self reset];
         [self precalculateHues];
     }
@@ -59,15 +59,15 @@ fhsv_t hue_lookup_table[COLOR_SIZE][COLOR_SIZE][COLOR_SIZE];
     if (newPrecision == precision || newPrecision == 0)
         return;
     precision = newPrecision;
-    hues = realloc(hues, precision * sizeof(*hues));
-    memset(hues, 0, precision * sizeof(*hues));
+    hues = realloc(hues, (precision + 1) * sizeof(*hues));
+    memset(hues, 0, (precision + 1) * sizeof(*hues));
 }
 
 - (void) reset {
     totalPixels = 0;
     totalSat = 0.0f;
     totalVal = 0.0f;
-    memset(hues, 0, precision * sizeof(*hues));
+    memset(hues, 0, (precision + 1) * sizeof(*hues));
 }
 
 - (void) processPixel:(pixel_t *)pixel {
@@ -81,7 +81,7 @@ fhsv_t hue_lookup_table[COLOR_SIZE][COLOR_SIZE][COLOR_SIZE];
 //    totalVal += v;
 
     fhsv_t *hsv = &hue_lookup_table[pixel->r][pixel->g][pixel->b];
-    unsigned short hueIndex = hsv->h * (precision - 1);
+    unsigned short hueIndex = hsv->h * precision;
     totalSat += hsv->s;
     totalVal += hsv->v;
 
@@ -92,7 +92,7 @@ fhsv_t hue_lookup_table[COLOR_SIZE][COLOR_SIZE][COLOR_SIZE];
 - (float) dominantHue {
     unsigned short dominantIndex = 0;
     unsigned long  dominantCount = 0;
-    for (unsigned short i = 0; i < precision; ++i)
+    for (unsigned short i = 0; i <= precision; ++i)
         if (dominantCount < hues[i]) {
             dominantIndex = i;
             dominantCount = hues[i];
