@@ -13,6 +13,7 @@
 
 @property (nonatomic, readonly) hsv_color_t * HSVColor;
 @property (nonatomic, readonly) CGColorRef RGBColor;
+@property (nonatomic, readonly) CGPoint XYColor;
 
 - (void) reset;
 - (void) processPixel:(pixel_t*)pixel;

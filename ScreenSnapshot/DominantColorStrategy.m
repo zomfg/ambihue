@@ -117,6 +117,17 @@ fhsv_t hue_lookup_table[COLOR_SIZE][COLOR_SIZE][COLOR_SIZE];
     return color;
 }
 
+- (CGPoint) XYColor {
+    CGPoint p = CGPointZero;
+    float r,g,b;
+    HSV2RGB([self dominantHue],                   // H
+            totalSat / totalPixels,   // S
+            totalVal / totalPixels,   // V
+            &r, &g, &b);
+    RGB2XY(r, g, b, &p);
+    return p;
+}
+
 - (void) dealloc {
     if (hues)
         free(hues);

@@ -333,14 +333,15 @@ hsv_color_t* prevHSV = NULL;
 //    });
 }
 
-- (void) updateHues:(hsv_color_t *)HSV {
+- (void) updateHues:(hsv_color_t *)HSV RGB:(CGColorRef)RGBColor XY:(CGPoint)XYColor {
     for (DPHueLight *light in hueLights) {
         if (light.number.intValue != 3) {
             light.holdUpdates = YES;
             continue;
         }
-        light.hue = @(HSV->hue);
-        light.saturation = @(HSV->sat);
+        light.xy = @[@(XYColor.x), @(XYColor.y)];
+//        light.hue = @(HSV->hue);
+//        light.saturation = @(HSV->sat);
         light.brightness = @(HSV->val >> 1);
         light.transitionTime = @(3);
         NSLog(@"COLOR MODE %@ %@", light.colorMode, light.number);
@@ -361,7 +362,9 @@ hsv_color_t* prevHSV = NULL;
             HSV->val != prevHSV->val) {
             free(prevHSV);
             prevHSV = HSV;
-            [self updateHues:HSV];
+            CGPoint XYColor = self.colorStrategy.XYColor;
+//            NSLog(@"XY COLOR : %@", NSStringFromPoint(p));
+            [self updateHues:HSV RGB:RGBColor XY:XYColor];
         }
         else
             free(HSV);

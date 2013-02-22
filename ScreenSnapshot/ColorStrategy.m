@@ -10,7 +10,7 @@
 
 @implementation ColorStrategy
 
-@synthesize HSVColor, RGBColor;
+@synthesize HSVColor, RGBColor, XYColor;
 
 - (void) reset {
     
@@ -26,6 +26,10 @@
 
 - (hsv_color_t *) HSVColor {
     return NULL;
+}
+
+- (CGPoint) XYColor {
+    return CGPointZero;
 }
 
 @end
