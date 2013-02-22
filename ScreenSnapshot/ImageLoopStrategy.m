@@ -56,7 +56,7 @@ CGContextRef CreateARGBBitmapContext(CGImageRef inImage, unsigned char p2scale)
                                      8,      // bits per component
                                      bitmapBytesPerRow,
                                      colorSpace,
-                                     CGImageGetAlphaInfo(inImage));
+                                     kCGImageAlphaNoneSkipLast);
     if (context == NULL)
     {
         free (bitmapData);
@@ -67,6 +67,35 @@ CGContextRef CreateARGBBitmapContext(CGImageRef inImage, unsigned char p2scale)
     CGColorSpaceRelease( colorSpace );
 
     return context;
+}
+
+CFDataRef pixelData = NULL;
+
+void* GetImageBytesFast(const CGImageRef inImage, const unsigned short p2scale, CGSize *size, unsigned short *bpp);
+void* GetImageBytesFast(const CGImageRef inImage, const unsigned short p2scale, CGSize *size, unsigned short *bpp)
+{
+    if (inImage == NULL)
+        return NULL;
+    *bpp = CGImageGetBitsPerPixel(inImage) / CGImageGetBitsPerComponent(inImage);
+    
+    // Get image width, height. We'll use the entire image.
+    size->width  = CGImageGetWidth(inImage);// >> p2scale;
+    size->height = CGImageGetHeight(inImage);// >> p2scale;
+    //Gets a CFData reference for the specified image reference
+    if (pixelData)
+        CFRelease(pixelData);
+    pixelData = CGDataProviderCopyData(CGImageGetDataProvider(inImage));
+    //Gets a readonly pointer to the image data
+    const UInt8 *pointerToData = CFDataGetBytePtr(pixelData); //This returns a read only version
+    //Casting to a void pointer to return, expected to be cast to a byte_t *
+//    CFIndex length_of_buffer = CFDataGetLength(pixelData);
+//    printf("Size of buffer is %zu\n",length_of_buffer);
+    return (void *)pointerToData;
+}
+
+BOOL CanIHazFastImageBytes(void);
+BOOL CanIHazFastImageBytes(void) {
+    return (CGDataProviderCopyData != NULL && CGImageGetDataProvider != NULL && CFDataGetBytePtr != NULL);
 }
 
 void* GetImageBytes(const CGImageRef inImage, const unsigned short p2scale, CGSize *size, unsigned short *bpp);
@@ -135,12 +164,18 @@ void* GetImageBytes(const CGImageRef inImage, const unsigned short p2scale, CGSi
 //    dispatch_async(queue, ^{
     CGSize size;
     unsigned short bpp;
-    void *data = GetImageBytes(inImage, 1, &size, &bpp);
+    void *data = NULL;
+    BOOL fastBytes = CanIHazFastImageBytes();
+    if (!fastBytes)
+        data = GetImageBytes(inImage, 1, &size, &bpp);
+    else
+        data = GetImageBytesFast(inImage, 1, &size, &bpp);
     if (data != NULL)
     {
         [colorStrategy reset];
         [self loop:data size:size bpp:bpp];
-        free(data);
+        if (!fastBytes)
+            free(data);
     }
 //    }); // dispatch block
 }

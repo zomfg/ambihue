@@ -11,11 +11,20 @@
 
 #import <QuartzCore/QuartzCore.h>
 
-typedef struct pixel_s {
-    unsigned char a;
+// slow
+typedef struct pixel_ss {
     unsigned char r;
     unsigned char g;
     unsigned char b;
+    unsigned char a;
+} pixel_tt;
+
+// fast
+typedef struct pixel_s {
+    unsigned char b;
+    unsigned char g;
+    unsigned char r;
+    unsigned char a;
 } pixel_t;
 
 typedef struct hsv_color_s {
