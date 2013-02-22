@@ -8,8 +8,8 @@
 
 #include "stuff.h"
 #import "ImageLoopStrategy.h"
-CGContextRef CreateARGBBitmapContext (CGImageRef inImage, unsigned char p2scale);
 
+CGContextRef CreateARGBBitmapContext (CGImageRef inImage, unsigned char p2scale);
 CGContextRef CreateARGBBitmapContext(CGImageRef inImage, unsigned char p2scale)
 {
     CGContextRef    context = NULL;
@@ -27,7 +27,7 @@ CGContextRef CreateARGBBitmapContext(CGImageRef inImage, unsigned char p2scale)
     // alpha.
     bitmapBytesPerRow   = (pixelsWide * 4);
     bitmapByteCount     = (bitmapBytesPerRow * pixelsHigh);
-
+//    NSLog(@"SIZE DATA %zu", bitmapByteCount);
     // Use the generic RGB color space.
     colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB);
     if (colorSpace == NULL)
@@ -69,62 +69,62 @@ CGContextRef CreateARGBBitmapContext(CGImageRef inImage, unsigned char p2scale)
     return context;
 }
 
-CFDataRef pixelData = NULL;
 
-void* GetImageBytesFast(const CGImageRef inImage, const unsigned short p2scale, CGSize *size, unsigned short *bpp);
-void* GetImageBytesFast(const CGImageRef inImage, const unsigned short p2scale, CGSize *size, unsigned short *bpp)
+CGContextRef ARGBContext = NULL;
+void* GetImageARGBBytes(const CGImageRef inImage, const unsigned short p2scale, CGSize *size, unsigned short *bpp);
+void* GetImageARGBBytes(const CGImageRef inImage, const unsigned short p2scale, CGSize *size, unsigned short *bpp)
 {
-    if (inImage == NULL)
-        return NULL;
-    *bpp = CGImageGetBitsPerPixel(inImage) / CGImageGetBitsPerComponent(inImage);
-    
-    // Get image width, height. We'll use the entire image.
-    size->width  = CGImageGetWidth(inImage);// >> p2scale;
-    size->height = CGImageGetHeight(inImage);// >> p2scale;
-    //Gets a CFData reference for the specified image reference
-    if (pixelData)
-        CFRelease(pixelData);
-    pixelData = CGDataProviderCopyData(CGImageGetDataProvider(inImage));
-    //Gets a readonly pointer to the image data
-    const UInt8 *pointerToData = CFDataGetBytePtr(pixelData); //This returns a read only version
-    //Casting to a void pointer to return, expected to be cast to a byte_t *
-//    CFIndex length_of_buffer = CFDataGetLength(pixelData);
-//    printf("Size of buffer is %zu\n",length_of_buffer);
-    return (void *)pointerToData;
-}
 
-BOOL CanIHazFastImageBytes(void);
-BOOL CanIHazFastImageBytes(void) {
-    return (CGDataProviderCopyData != NULL && CGImageGetDataProvider != NULL && CFDataGetBytePtr != NULL);
-}
-
-void* GetImageBytes(const CGImageRef inImage, const unsigned short p2scale, CGSize *size, unsigned short *bpp);
-void* GetImageBytes(const CGImageRef inImage, const unsigned short p2scale, CGSize *size, unsigned short *bpp)
-{
     // size / 2^p2scale
-    CGContextRef cgctx = CreateARGBBitmapContext(inImage, p2scale);
-    if (cgctx == NULL)
+    if (ARGBContext == NULL)
+        ARGBContext = CreateARGBBitmapContext(inImage, p2scale);
+
+    if (ARGBContext == NULL)
         // error creating context
         return NULL;
     *bpp = CGImageGetBitsPerPixel(inImage) / CGImageGetBitsPerComponent(inImage);
-    
+
     // Get image width, height. We'll use the entire image.
-    size->width  = CGImageGetWidth(inImage) >> p2scale;
-    size->height = CGImageGetHeight(inImage) >> p2scale;
+    size->width  = CGImageGetWidth(inImage);// >> p2scale;
+    size->height = CGImageGetHeight(inImage);// >> p2scale;
     CGRect rect = {{0,0},{size->width,size->height}};
-    
+
     // Draw the image to the bitmap context. Once we draw, the memory
     // allocated for the context for rendering will then contain the
     // raw image data in the specified color space.
-    CGContextDrawImage(cgctx, rect, inImage);
-    
+    CGContextDrawImage(ARGBContext, rect, inImage);
+
     // Now we can get a pointer to the image data associated with the bitmap
     // context.
-    void *data = CGBitmapContextGetData(cgctx);
+    void *data = CGBitmapContextGetData(ARGBContext);
     // When finished, release the context
-    CGContextRelease(cgctx);
+//    CGContextRelease(ARGBContext);
+
     return data;
 }
+
+
+CFDataRef BGRAPixelData = NULL;
+void* GetImageBGRABytes(const CGImageRef inImage, const unsigned short p2scale, CGSize *size, unsigned short *bpp);
+void* GetImageBGRABytes(const CGImageRef inImage, const unsigned short p2scale, CGSize *size, unsigned short *bpp)
+{
+    *bpp = CGImageGetBitsPerPixel(inImage) / CGImageGetBitsPerComponent(inImage);
+
+    // Get image width, height. We'll use the entire image.
+    size->width  = CGImageGetWidth(inImage);
+    size->height = CGImageGetHeight(inImage);
+
+    CGDataProviderRef provider = CGImageGetDataProvider(inImage);
+
+    if (BGRAPixelData)
+        CFRelease(BGRAPixelData);
+    BGRAPixelData = CGDataProviderCopyData(provider);
+
+    //Gets a readonly pointer to the image data
+    const UInt8 *pointerToData = CFDataGetBytePtr(BGRAPixelData); //This returns a read only version
+    return (void *)pointerToData;
+}
+
 
 @implementation ImageLoopStrategy
 
@@ -164,19 +164,14 @@ void* GetImageBytes(const CGImageRef inImage, const unsigned short p2scale, CGSi
 //    dispatch_async(queue, ^{
     CGSize size;
     unsigned short bpp;
-    void *data = NULL;
-    BOOL fastBytes = CanIHazFastImageBytes();
-    if (!fastBytes)
-        data = GetImageBytes(inImage, 1, &size, &bpp);
-    else
-        data = GetImageBytesFast(inImage, 1, &size, &bpp);
+    void *data = GetImageBGRABytes(inImage, 1, &size, &bpp);
     if (data != NULL)
     {
         [colorStrategy reset];
         [self loop:data size:size bpp:bpp];
-        if (!fastBytes)
-            free(data);
+//        free(data);
     }
+
 //    }); // dispatch block
 }
 @end

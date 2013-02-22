@@ -39,4 +39,7 @@ extern void RGB2HSV(float r, float g, float b,
 extern void HSV2RGB(float h, float s, float v,
                     float *r, float *g, float *b);
 
+extern void RGB2XY(float r, float g, float b,
+                   CGPoint *xyPoint);
+
 #endif

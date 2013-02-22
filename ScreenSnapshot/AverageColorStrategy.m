@@ -49,10 +49,19 @@
             totalGREEN / totalPixels / 255.0f,
             totalBLUE / totalPixels / 255.0f,
             &h, &s, &v);
-    color->hue = h * 0xffff;
-    color->sat = s * 0xff;
-    color->val = v * 0xff;
+    color->hue = h * 0xfffe;
+    color->sat = s * 0xfe;
+    color->val = v * 0xfe;
     return color;
+}
+
+- (CGPoint) XYColor {
+    CGPoint p = CGPointZero;
+    RGB2XY(totalRED / totalPixels / 255.0f,
+           totalGREEN / totalPixels / 255.0f,
+           totalBLUE / totalPixels / 255.0f,
+           &p);
+    return p;
 }
 
 @end

@@ -47,8 +47,8 @@ fhsv_t hue_lookup_table[COLOR_SIZE][COLOR_SIZE][COLOR_SIZE];
 
 - (id) init {
     if ((self = [super init])) {
-        precision = 40;
-        hues = malloc(precision * sizeof(*hues));
+        precision = 360;
+        hues = malloc((precision + 1) * sizeof(*hues));
         [self reset];
         [self precalculateHues];
     }
@@ -59,40 +59,32 @@ fhsv_t hue_lookup_table[COLOR_SIZE][COLOR_SIZE][COLOR_SIZE];
     if (newPrecision == precision || newPrecision == 0)
         return;
     precision = newPrecision;
-    hues = realloc(hues, precision * sizeof(*hues));
-    memset(hues, 0, precision * sizeof(*hues));
+    hues = realloc(hues, (precision + 1) * sizeof(*hues));
+    memset(hues, 0, (precision + 1) * sizeof(*hues));
 }
 
 - (void) reset {
     totalPixels = 0;
     totalSat = 0.0f;
     totalVal = 0.0f;
-    memset(hues, 0, precision * sizeof(*hues));
+    memset(hues, 0, (precision + 1) * sizeof(*hues));
 }
 
 - (void) processPixel:(pixel_t *)pixel {
-//    float h,s = 0.0f,v = 0.0f;
-//    RGB2HSV(pixel->r / 255.0f,
-//            pixel->g / 255.0f,
-//            pixel->b / 255.0f,
-//            &h, &s, &v);
-//    unsigned short hueIndex = h * (precision - 1);
-//    totalSat += s;
-//    totalVal += v;
-
     fhsv_t *hsv = &hue_lookup_table[pixel->r][pixel->g][pixel->b];
-    unsigned short hueIndex = hsv->h * (precision - 1);
+
     totalSat += hsv->s;
     totalVal += hsv->v;
 
-    ++hues[hueIndex];
+    if (!(pixel->r == pixel->g && pixel->g == pixel->b))
+        ++hues[(unsigned short)(hsv->h * precision)];
     ++totalPixels;
 }
 
 - (float) dominantHue {
     unsigned short dominantIndex = 0;
     unsigned long  dominantCount = 0;
-    for (unsigned short i = 0; i < precision; ++i)
+    for (unsigned short i = 0; i <= precision; ++i)
         if (dominantCount < hues[i]) {
             dominantIndex = i;
             dominantCount = hues[i];
@@ -123,6 +115,17 @@ fhsv_t hue_lookup_table[COLOR_SIZE][COLOR_SIZE][COLOR_SIZE];
     color->sat = totalSat / totalPixels * 0xfe;
     color->val = totalVal / totalPixels * 0xfe;
     return color;
+}
+
+- (CGPoint) XYColor {
+    CGPoint p = CGPointZero;
+    float r,g,b;
+    HSV2RGB([self dominantHue],                   // H
+            totalSat / totalPixels,   // S
+            totalVal / totalPixels,   // V
+            &r, &g, &b);
+    RGB2XY(r, g, b, &p);
+    return p;
 }
 
 - (void) dealloc {

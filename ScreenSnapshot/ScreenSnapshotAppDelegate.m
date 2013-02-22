@@ -307,8 +307,8 @@ hsv_color_t* prevHSV = NULL;
     /* Populate the Capture menu with a list of displays by iterating over all of the displays. */
     //    colorStrategy = [AverageColorStrategy new];
     self.colorStrategy = [DominantColorStrategy new];
-    //    imageLoopStrategy = [[FullImageLoopStrategy alloc] initWithColorStrategy:colorStrategy];
-    self.imageLoopStrategy = [[BorderImageLoopStrategy alloc] initWithColorStrategy:self.colorStrategy];
+    imageLoopStrategy = [[FullImageLoopStrategy alloc] initWithColorStrategy:colorStrategy];
+//    self.imageLoopStrategy = [[BorderImageLoopStrategy alloc] initWithColorStrategy:self.colorStrategy];
     self.imageLoopStrategy.delegate = self;
     [self buildStatusMenu];
     [self interrogateHardware];
@@ -333,14 +333,15 @@ hsv_color_t* prevHSV = NULL;
 //    });
 }
 
-- (void) updateHues:(hsv_color_t *)HSV {
+- (void) updateHues:(hsv_color_t *)HSV RGB:(CGColorRef)RGBColor XY:(CGPoint)XYColor {
     for (DPHueLight *light in hueLights) {
         if (light.number.intValue != 3) {
             light.holdUpdates = YES;
             continue;
         }
-        light.hue = @(HSV->hue);
-        light.saturation = @(HSV->sat);
+        light.xy = @[@(XYColor.x), @(XYColor.y)];
+//        light.hue = @(HSV->hue);
+//        light.saturation = @(HSV->sat);
         light.brightness = @(HSV->val >> 1);
         light.transitionTime = @(3);
         NSLog(@"COLOR MODE %@ %@", light.colorMode, light.number);
@@ -361,7 +362,9 @@ hsv_color_t* prevHSV = NULL;
             HSV->val != prevHSV->val) {
             free(prevHSV);
             prevHSV = HSV;
-            [self updateHues:HSV];
+            CGPoint XYColor = self.colorStrategy.XYColor;
+//            NSLog(@"XY COLOR : %@", NSStringFromPoint(p));
+            [self updateHues:HSV RGB:RGBColor XY:XYColor];
         }
         else
             free(HSV);
@@ -370,6 +373,7 @@ hsv_color_t* prevHSV = NULL;
         [self updateStatusColor:RGBColor];
         CGColorRelease(RGBColor);
     }
+//    [self captureCurrentDisplay];
     [self performSelector:@selector(captureCurrentDisplay) withObject:nil afterDelay:0.2];
 }
 
@@ -443,7 +447,7 @@ hsv_color_t* prevHSV = NULL;
     if (image) {
     //    started = [[NSDate date] retain];
         [imageLoopStrategy processImage:image];
-        CFRelease(image);
+        CGImageRelease(image);
     }
 }
 
