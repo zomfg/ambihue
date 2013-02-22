@@ -47,7 +47,7 @@ fhsv_t hue_lookup_table[COLOR_SIZE][COLOR_SIZE][COLOR_SIZE];
 
 - (id) init {
     if ((self = [super init])) {
-        precision = 40;
+        precision = 360;
         hues = malloc((precision + 1) * sizeof(*hues));
         [self reset];
         [self precalculateHues];
@@ -71,21 +71,13 @@ fhsv_t hue_lookup_table[COLOR_SIZE][COLOR_SIZE][COLOR_SIZE];
 }
 
 - (void) processPixel:(pixel_t *)pixel {
-//    float h,s = 0.0f,v = 0.0f;
-//    RGB2HSV(pixel->r / 255.0f,
-//            pixel->g / 255.0f,
-//            pixel->b / 255.0f,
-//            &h, &s, &v);
-//    unsigned short hueIndex = h * (precision - 1);
-//    totalSat += s;
-//    totalVal += v;
-
     fhsv_t *hsv = &hue_lookup_table[pixel->r][pixel->g][pixel->b];
-    unsigned short hueIndex = hsv->h * precision;
+
     totalSat += hsv->s;
     totalVal += hsv->v;
 
-    ++hues[hueIndex];
+    if (!(pixel->r == pixel->g && pixel->g == pixel->b))
+        ++hues[(unsigned short)(hsv->h * precision)];
     ++totalPixels;
 }
 
